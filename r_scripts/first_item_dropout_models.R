@@ -44,7 +44,7 @@ first_model <- lm(dropout_percentage ~ num_of_items + course_days + forum_counts
 
 # Generate diagnostic plots
 par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
-plot(final_model)      # Default diagnostic plots
+plot(first_model)      # Default diagnostic plots
 
 summary(first_model)
 
