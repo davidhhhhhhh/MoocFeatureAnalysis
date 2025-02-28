@@ -3,5 +3,7 @@
 .RData
 .Ruserdata 
 data/           
-notebooks/.venv/     
+preprocess_scripts/.venv/
+preprocess_scripts/.idea/
+MOOC_Feature_Analysis.Rproj
 
