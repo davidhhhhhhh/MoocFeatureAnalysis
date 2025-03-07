@@ -36,8 +36,9 @@ updated_data$log_dropout_percentage = log(updated_data$dropout_percentage + 0.00
 
 # use updated_data from modeling
 a_cleaned = updated_data %>% select(everything())
+a_ex1 = a_cleaned[!a_cleaned$updated_order==1,] # for excluding first item
+a_first = a_cleaned[a_cleaned$updated_order==1,] # for analyzing first item
 
-a_ex1 = a_cleaned[!a_cleaned$updated_order==1,]
 
 # course level model -----
 library(lme4)
@@ -56,18 +57,62 @@ model2 <- lmer(log_dropout_percentage ~ updated_order +
 # check residual
 plot(fitted(model2), residuals(model2))
 
+# plot the model
+library(ggplot2)
 
+# Get fitted values and exponentiate them
+a_ex1$fitted_dropout <- exp(predict(model2))
+
+# Create plot
+ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage)) +
+  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
+  geom_line(aes(y = fitted_dropout), color = "red", size = 1) +  # Fitted curve
+  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
+       x = "Updated Order",
+       y = "Dropout Percentage") +
+  theme_minimal()
 
 # assessment level model ----
-# Fit the second model with assessment-related features
-model2 <- lm(residuals ~ assessment_passing_fraction + global_item_time_commitment + 
-               question_counts + checkbox_percentage + codeExpression_percentage + 
-               math.expression_percentage + mcq_percentage + mcqReflect_percentage + 
-               reflect_percentage + regex_percentage + single.numeric_percentage + 
-               text.exact.match_percentage, data = a)
+# adding residuals for new data frame
+a_assessment = a_ex1
+a_assessment$resid = a_ex1$dropout_percentage - exp(predict(model2))
+a_assessment$resid_new = resid(model2)
 
+# Fit the model with all predictors except 'course_id'
+model_assessment_full <- lmer(resid_new ~ 
+                                course_days + forum_counts + assessment_counts + 
+                                asssignemnt_counts + required_review_counts + 
+                                as.factor(grading_types) + as.factor(submission_types) + 
+                                num_of_items + assessment_passing_fraction + 
+                                global_item_time_commitment + question_counts + 
+                                checkbox_percentage + 
+                                mcq_percentage + 
+                                reflect_percentage + 
+                                single.numeric_percentage + unique_user_count + 
+                                (1 | course_id),  # Random effect for course_id
+                              data = a_assessment, 
+                              REML = TRUE)
 # Summarize the results
-summary(model2)
+summary(model_assessment_full)
+
+# model select does not make much difference on AIC 
+model_assessment_lm <- lm(resid ~ 
+                                course_days + forum_counts + assessment_counts + 
+                                asssignemnt_counts + 
+                                as.factor(grading_types) + 
+                                num_of_items + assessment_passing_fraction + 
+                                global_item_time_commitment + question_counts + 
+                                checkbox_percentage + 
+                                mcq_percentage + 
+                                reflect_percentage + 
+                                single.numeric_percentage + unique_user_count,
+                              data = a_assessment)
+# diagnostic plot
+par(mfrow=c(2,2))
+plot(model_assessment_lm)
+
+# summary
+summary(model_assessment_lm)
 
 # revise the code----
 a$dropout_percentage_log = log(a$dropout_percentage + 0.0001)
