@@ -78,8 +78,8 @@ a_assessment = a_ex1
 a_assessment$resid = a_ex1$dropout_percentage - exp(predict(model2))
 a_assessment$resid_new = resid(model2)
 
-# Fit the model with all predictors except 'course_id'
-model_assessment_full <- lmer(resid_new ~ 
+# Fit mixed model with all predictors except 'course_id'
+model_assessment_full <- lmer(resid ~ 
                                 course_days + forum_counts + assessment_counts + 
                                 asssignemnt_counts + required_review_counts + 
                                 grading_types + submission_types + 
@@ -95,24 +95,30 @@ model_assessment_full <- lmer(resid_new ~
 # Summarize the results
 summary(model_assessment_full)
 
-# model select does not make much difference on AIC 
+# Based on 0 variance in random intercepts, refit lm  
 model_assessment_lm <- lm(resid ~ 
-                                course_days + forum_counts + assessment_counts + 
-                                asssignemnt_counts + 
-                                grading_types + 
-                                num_of_items + assessment_passing_fraction + 
-                                global_item_time_commitment + question_counts + 
-                                checkbox_percentage + 
-                                mcq_percentage + 
-                                reflect_percentage + 
-                                single.numeric_percentage + unique_user_count,
-                              data = a_assessment)
-# diagnostic plot
+                              course_days + forum_counts + assessment_counts + 
+                              asssignemnt_counts + required_review_counts + 
+                              grading_types + submission_types + 
+                              num_of_items + assessment_passing_fraction + 
+                              global_item_time_commitment + question_counts + 
+                              checkbox_percentage + 
+                              mcq_percentage + 
+                              reflect_percentage + 
+                              single.numeric_percentage + unique_user_count,
+                            data = a_assessment)
+
+# stepwise model selection on aic
+model_assessment_lm_aic = step(model_assessment_lm, direction = "both")
+summary(model_assessment_lm_aic)
+# stepwise model delete many informative columns
+
+# Final choice on lm full model
+# summary and diagnostic plot
+summary(model_assessment_lm)
 par(mfrow=c(2,2))
 plot(model_assessment_lm)
 
-# summary
-summary(model_assessment_lm)
 
 # revise the code----
 a$dropout_percentage_log = log(a$dropout_percentage + 0.0001)
