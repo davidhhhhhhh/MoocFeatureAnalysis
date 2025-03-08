@@ -82,7 +82,7 @@ a_assessment$resid_new = resid(model2)
 model_assessment_full <- lmer(resid_new ~ 
                                 course_days + forum_counts + assessment_counts + 
                                 asssignemnt_counts + required_review_counts + 
-                                as.factor(grading_types) + as.factor(submission_types) + 
+                                grading_types + submission_types + 
                                 num_of_items + assessment_passing_fraction + 
                                 global_item_time_commitment + question_counts + 
                                 checkbox_percentage + 
@@ -99,7 +99,7 @@ summary(model_assessment_full)
 model_assessment_lm <- lm(resid ~ 
                                 course_days + forum_counts + assessment_counts + 
                                 asssignemnt_counts + 
-                                as.factor(grading_types) + 
+                                grading_types + 
                                 num_of_items + assessment_passing_fraction + 
                                 global_item_time_commitment + question_counts + 
                                 checkbox_percentage + 
