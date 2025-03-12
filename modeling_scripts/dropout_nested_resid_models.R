@@ -31,8 +31,10 @@ updated_data <- merged_data %>%
   mutate(updated_order = row_number()) %>%  # Assign sequential order within each course
   ungroup()  # Remove grouping for further operations
 
+# tiny shift on dropout percentage for positive requirement in gamma
+updated_data$dropout_percentage = updated_data$dropout_percentage + 0.0001
 # create log dropout rate
-updated_data$log_dropout_percentage = log(updated_data$dropout_percentage + 0.0001)
+updated_data$log_dropout_percentage = log(updated_data$dropout_percentage)
 
 # use updated_data from modeling
 a_cleaned = updated_data %>% select(everything())
@@ -57,11 +59,25 @@ model2 <- lmer(log_dropout_percentage ~ updated_order +
 # check residual
 plot(fitted(model2), residuals(model2))
 
+# Fit the gamma distribution model with first item 
+model3 <- glmer(dropout_percentage~updated_order + (1 | course_id),
+                data = a_cleaned, family = Gamma(link = "log"))
+
+# summary gamma model with first item
+summary(model3)
+
+# Fit the gamma distribution model with first item 
+model4 <- glmer(dropout_percentage~updated_order + (1 | course_id),
+                data = a_ex1, family = Gamma(link = "log"))
+
+# summary gamma model with first item
+summary(model4)
+
 # plot the model
 library(ggplot2)
 
 # Get fitted values and exponentiate them
-a_ex1$fitted_dropout <- exp(predict(model2))
+a_ex1$fitted_dropout <- exp(predict(model4))
 
 # Create plot
 ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage)) +
@@ -118,33 +134,4 @@ summary(model_assessment_lm_aic)
 summary(model_assessment_lm)
 par(mfrow=c(2,2))
 plot(model_assessment_lm)
-
-
-# revise the code----
-a$dropout_percentage_log = log(a$dropout_percentage + 0.0001)
-model1 <- lmer(dropout_percentage_log ~ graded_item_order + (1 + graded_item_order | course_id), data = a)
-
-# Extract residuals
-a$residuals <- resid(model1)
-
-model1a <- glmer(dropout_percentage ~ graded_item_order + (1 | course_id), data = a, family = poisson(link = "log"))
-
-a$residuals2 <- resid(model1a)
-# Fit the second model with assessment-related features
-model2 <- lmer(residuals ~ assessment_passing_fraction + global_item_time_commitment + 
-               question_counts + checkbox_percentage + codeExpression_percentage + 
-               math.expression_percentage + mcq_percentage + mcqReflect_percentage + 
-               reflect_percentage + regex_percentage + single.numeric_percentage + 
-               text.exact.match_percentage + (1 | course_id), data = a)
-
-# Summarize the results
-summary(model2)
-
-# extract fitted value from model1
-a$predictions <- exp(predict(model1))
-
-# Dataset EDA
-temp = a[a$course_id== "tnnYzSDvEeaDJw40-0xSFQ",]
-temp = temp[order(temp$graded_item_order),]
-temp$dropout_percentage
 

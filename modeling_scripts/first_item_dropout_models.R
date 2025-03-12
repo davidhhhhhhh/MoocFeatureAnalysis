@@ -14,8 +14,6 @@ b_cleaned <- b_filtered %>%
   slice(1) %>%  # Keep only the first row in each group
   ungroup()  # Remove grouping
 
-# Define categorical columns
-categorical_cols <- c("grading_types", "submission_types")
 
 # Define columns to exclude (non-useful IDs)
 exclude_cols <- c("index", "course_id", "first_item_id", "second_item_id", "dropout_percentage")
@@ -29,22 +27,44 @@ b_selected <- b_cleaned[, c(feature_cols, "dropout_percentage")]
 # Identify and remove columns with only one unique value
 constant_cols <- names(b_selected)[sapply(b_selected, function(col) length(unique(col)) == 1)]
 b_selected <- b_selected[, !names(b_selected) %in% constant_cols]
+b_selected$assignment_counts = b_selected$asssignemnt_counts
+b_selected$single_numeric_percentage_x = b_selected$single.numeric_percentage_x
+b_selected$single_numeric_percentage_y = b_selected$single.numeric_percentage_y
 
-# Convert categorical variables to factors
-for (col in categorical_cols) {
-  if (col %in% names(b_selected)) {
-    b_selected[[col]] <- as.factor(b_selected[[col]])
-  }
-}
-
-# Fit full model excluding dropout_percentage as predictor
-full_model <- lm(dropout_percentage ~ ., data = b_selected)
+# Fit full model excluding dropout_percentage as predictor, exclude 
+# mcq percentage which is default
+full_model <- model <- lm(
+  dropout_percentage ~ num_of_items + course_days + forum_counts + assessment_counts + 
+    asssignemnt_counts + required_review_counts + grading_types + submission_types +
+    assessment_passing_fraction_x + global_item_time_commitment_x + question_counts_x +
+    checkbox_percentage_x + reflect_percentage_x + single_numeric_percentage_x +
+    assessment_passing_fraction_y + global_item_time_commitment_y + question_counts_y +
+    checkbox_percentage_y + single_numeric_percentage_y,
+  data = b_selected
+)
 
 # Perform stepwise variable selection using AIC
 stepwise_model <- stepAIC(full_model, direction = "both")
 
 # Display summary of the final model
 summary(stepwise_model)
+
+# Model for course level 
+course_level_model = lm(dropout_percentage ~ num_of_items + course_days + forum_counts + assessment_counts + 
+                          asssignemnt_counts + required_review_counts + grading_types + submission_types,
+                        data = b_selected)
+stepwise_model_course <- stepAIC(course_level_model, direction = "both")
+summary(stepwise_model_course)
+
+# Model for assessment level
+assessment_level_model = lm(dropout_percentage ~ assessment_passing_fraction_x + global_item_time_commitment_x + question_counts_x +
+                              checkbox_percentage_x + reflect_percentage_x + single_numeric_percentage_x +
+                              assessment_passing_fraction_y + global_item_time_commitment_y + question_counts_y +
+                              checkbox_percentage_y + single_numeric_percentage_y,
+                        data = b_selected)
+stepwise_model_assessment <- stepAIC(assessment_level_model, direction = "both")
+summary(stepwise_model_assessment)
+
 
 # Generate diagnostic plots
 par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
