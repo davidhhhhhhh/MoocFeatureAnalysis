@@ -76,35 +76,6 @@ summary(model4)
 # plot the model
 library(ggplot2)
 
-# Get fitted values and exponentiate them
-a_ex1$fitted_dropout <- exp(predict(model4))
-
-# Create plot
-ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage)) +
-  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
-  geom_line(aes(y = fitted_dropout), color = "red", size = 1) +  # Fitted curve
-  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
-       x = "Updated Order",
-       y = "Dropout Percentage") +
-  theme_minimal()
-
-ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage, group = course_id)) +
-  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
-  geom_line(aes(y = fitted_dropout, group = course_id), color = "red", size = 1) +  # Fitted curve
-  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
-       x = "Updated Order",
-       y = "Dropout Percentage") +
-  theme_minimal()
-
-a_cleaned$fitted_value_w_first = exp(predict(model3))
-ggplot(a_cleaned, aes(x = updated_order, y = dropout_percentage, group = course_id)) +
-  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
-  geom_line(aes(y = fitted_value_w_first, group = course_id), color = "red", size = 1) +  # Fitted curve
-  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
-       x = "Updated Order",
-       y = "Dropout Percentage") +
-  theme_minimal()
-
 # Predict using only fixed effects for model3 and model4
 a_cleaned$fitted_value_fixed_model3 = exp(predict(model3, newdata = a_cleaned, re.form = NA, raw=TRUE))
 a_ex1$fitted_value_fixed_model4 = exp(predict(model4, newdata = a_ex1, re.form = NA, raw=TRUE))
@@ -113,21 +84,25 @@ a_ex1$fitted_value_fixed_model4 = exp(predict(model4, newdata = a_ex1, re.form =
 ggplot() +
   # Model 3 points and curve
   geom_point(data = a_cleaned, aes(x = updated_order, y = dropout_percentage), 
-             alpha = 0.5, color = "blue") +
-  geom_line(data = a_cleaned, aes(x = updated_order, y = fitted_value_fixed_model3, color = "Model 3"), size = 1) +
+             alpha = 0.3, color = "blue") +
+  geom_line(data = a_cleaned, aes(x = updated_order, y = fitted_value_fixed_model3, color = "With first assessment"), size = 1) +
   
   # Model 4 points and curve
-  geom_line(data = a_ex1, aes(x = updated_order, y = fitted_value_fixed_model4, color = "Model 4"), size = 1) +
+  geom_line(data = a_ex1, aes(x = updated_order, y = fitted_value_fixed_model4, color = "Without first assessment"), size = 1) +
   
   # Labels and theme
-  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order (Fixed Effects Only)",
-       x = "Updated Order",
-       y = "Dropout Percentage",
+  labs(title = "Exponential Decay for Stopout Percentage",
+       x = "Assessment Order",
+       y = "Stopout Percentage",
        color = "Model") +
+  
+  # Set theme and legend position
   theme_minimal() +
-  scale_color_manual(values = c("Model 3" = "red", "Model 4" = "purple"))
-
-
+  theme(
+    legend.position = "bottom",  # Move legend to the bottom
+    plot.title = element_text(hjust = 0.5)  # Center the title
+  ) +
+  scale_color_manual(values = c("With first assessment" = "red", "Without first assessment" = "purple"))
 
 # assessment level model ----
 # adding residuals for new data frame
