@@ -36,6 +36,10 @@ updated_data$dropout_percentage = updated_data$dropout_percentage + 0.0001
 # create log dropout rate
 updated_data$log_dropout_percentage = log(updated_data$dropout_percentage)
 
+# remove outliers 
+outliers = updated_data[updated_data$updated_order > 2 & updated_data$dropout_percentage > 0.3,]
+updated_data = updated_data[!(updated_data$updated_order > 2 & updated_data$dropout_percentage > 0.3), ]
+
 # use updated_data from modeling
 a_cleaned = updated_data %>% select(everything())
 a_ex1 = a_cleaned[!a_cleaned$updated_order==1,] # for excluding first item
@@ -62,15 +66,11 @@ plot(fitted(model2), residuals(model2))
 # Fit the gamma distribution model with first item 
 model3 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_cleaned, family = Gamma(link = "log"))
-
-# summary gamma model with first item
 summary(model3)
 
 # Fit the gamma distribution model with first item 
 model4 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_ex1, family = Gamma(link = "log"))
-
-# summary gamma model with first item
 summary(model4)
 
 # plot the model
@@ -87,6 +87,47 @@ ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage)) +
        x = "Updated Order",
        y = "Dropout Percentage") +
   theme_minimal()
+
+ggplot(a_ex1, aes(x = updated_order, y = dropout_percentage, group = course_id)) +
+  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
+  geom_line(aes(y = fitted_dropout, group = course_id), color = "red", size = 1) +  # Fitted curve
+  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
+       x = "Updated Order",
+       y = "Dropout Percentage") +
+  theme_minimal()
+
+a_cleaned$fitted_value_w_first = exp(predict(model3))
+ggplot(a_cleaned, aes(x = updated_order, y = dropout_percentage, group = course_id)) +
+  geom_point(alpha = 0.5, color = "blue") +  # Scatter plot of actual dropout percentages
+  geom_line(aes(y = fitted_value_w_first, group = course_id), color = "red", size = 1) +  # Fitted curve
+  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order",
+       x = "Updated Order",
+       y = "Dropout Percentage") +
+  theme_minimal()
+
+# Predict using only fixed effects for model3 and model4
+a_cleaned$fitted_value_fixed_model3 = exp(predict(model3, newdata = a_cleaned, re.form = NA, raw=TRUE))
+a_ex1$fitted_value_fixed_model4 = exp(predict(model4, newdata = a_ex1, re.form = NA, raw=TRUE))
+
+# Plot both curves
+ggplot() +
+  # Model 3 points and curve
+  geom_point(data = a_cleaned, aes(x = updated_order, y = dropout_percentage), 
+             alpha = 0.5, color = "blue") +
+  geom_line(data = a_cleaned, aes(x = updated_order, y = fitted_value_fixed_model3, color = "Model 3"), size = 1) +
+  
+  # Model 4 points and curve
+  geom_line(data = a_ex1, aes(x = updated_order, y = fitted_value_fixed_model4, color = "Model 4"), size = 1) +
+  
+  # Labels and theme
+  labs(title = "Fitted Curve for Dropout Percentage vs. Updated Order (Fixed Effects Only)",
+       x = "Updated Order",
+       y = "Dropout Percentage",
+       color = "Model") +
+  theme_minimal() +
+  scale_color_manual(values = c("Model 3" = "red", "Model 4" = "purple"))
+
+
 
 # assessment level model ----
 # adding residuals for new data frame
