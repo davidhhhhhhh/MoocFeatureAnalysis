@@ -40,7 +40,10 @@ updated_data$log_dropout_percentage = log(updated_data$dropout_percentage)
 outliers = updated_data[updated_data$updated_order > 2 & updated_data$dropout_percentage > 0.3,]
 updated_data = updated_data[!(updated_data$updated_order > 2 & updated_data$dropout_percentage > 0.3), ]
 
-# use updated_data from modeling
+# remove course with only one graded item
+updated_data = updated_data[!updated_data$course_id=="wWmv2BEhEeWvmQrN_lODCw",]
+
+# use updated_data from modelings
 a_cleaned = updated_data %>% select(everything())
 a_ex1 = a_cleaned[!a_cleaned$updated_order==1,] # for excluding first item
 a_first = a_cleaned[a_cleaned$updated_order==1,] # for analyzing first item
@@ -104,6 +107,34 @@ ggplot() +
   ) +
   scale_color_manual(values = c("With first assessment" = "red", "Without first assessment" = "purple"))
 
+# Model 3 and 4 evalution on rsme
+# 1. Predictions and RMSE: Model 3 on full dataset (baseline)
+pred3_full <- predict(model3, newdata = a_cleaned, type = "response", re.form = NULL)
+obs_full <- a_cleaned$dropout_percentage
+rmse_model3_full <- sqrt(mean((obs_full - pred3_full)^2))
+
+# 2. Predictions and RMSE: Model 3 on subset dataset (a_ex1)
+pred3_ex1 <- predict(model3, newdata = a_ex1, type = "response", re.form = NULL, allow.new.levels = FALSE)
+observed_ex1 <- a_ex1$dropout_percentage
+rmse_model3_ex1 <- sqrt(mean((observed_ex1 - pred3_ex1)^2))
+
+# 3. Predictions and RMSE: Model 4 on subset dataset (original dataset)
+pred4_ex1 <- predict(model4, newdata = a_ex1, type = "response", re.form = NULL)
+rmse_model4_ex1 <- sqrt(mean((observed_ex1 - pred4_ex1)^2))
+
+# 4. Predictions and RMSE: Model 4 on full dataset (a_cleaned)
+pred4_full <- predict(model4, newdata = a_cleaned, type = "response", re.form = NULL, allow.new.levels = FALSE)
+observed_full <- a_cleaned$dropout_percentage
+rmse_model4_full <- sqrt(mean((obs_full - pred4_full)^2))
+
+# Summary Output
+rmse_results <- data.frame(
+  Model = c("Model 3", "Model 3", "Model 4", "Model 4"),
+  Evaluated_on = c("Full data", "Subset data (a_ex1)", "Subset data (a_ex1)", "Full data"),
+  RMSE = c(rmse_model3_full, rmse_model3_ex1, rmse_model4_ex1, rmse_model4_full)
+)
+
+print(rmse_results)
 # assessment level model ----
 # adding residuals for new data frame
 a_assessment = a_ex1
