@@ -52,20 +52,6 @@ a_first = a_cleaned[a_cleaned$updated_order==1,] # for analyzing first item
 # course level model -----
 library(lme4)
 
-# Fit the mixed-effects model with first item
-model1 <- lmer(log_dropout_percentage ~ updated_order + 
-                 (1 | course_id), data = a_cleaned)
-
-# Check residuals
-plot(fitted(model1), residuals(model1))
-
-# Fit the mixed-effects model without first item
-model2 <- lmer(log_dropout_percentage ~ updated_order + 
-                 (1 | course_id), data = a_ex1)
-
-# check residual
-plot(fitted(model2), residuals(model2))
-
 # Fit the gamma distribution model with first item 
 model3 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_cleaned, family = Gamma(link = "log"))
