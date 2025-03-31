@@ -57,7 +57,7 @@ model3 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_cleaned, family = Gamma(link = "log"))
 summary(model3)
 
-# Fit the gamma distribution model with first item 
+# Fit the gamma distribution model without first item 
 model4 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_ex1, family = Gamma(link = "log"))
 summary(model4)
@@ -121,6 +121,35 @@ rmse_results <- data.frame(
 )
 
 print(rmse_results)
+# boxplot visual
+ggplot() +
+  # Boxplot for a_cleaned data without a legend label
+  geom_boxplot(data = a_cleaned, 
+               aes(x = updated_order, y = dropout_percentage, group = updated_order),
+               alpha = 0.3, fill = "grey") +
+  # Fitted curve for model3 (with first assessment)
+  geom_line(data = a_cleaned, 
+            aes(x = updated_order, y = fitted_value_fixed_model3, color = "With first assessment"), 
+            size = 1) +
+  # Fitted curve for model4 (without first assessment)
+  geom_line(data = a_ex1, 
+            aes(x = updated_order, y = fitted_value_fixed_model4, color = "Without first assessment"), 
+            size = 1) +
+  
+  # Labels and theme
+  labs(title = "Exponential Decay for Stopout Percentage",
+       x = "Assessment Order",
+       y = "Stopout Percentage",
+       color = "Model") +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  scale_color_manual(values = c("With first assessment" = "red", 
+                                "Without first assessment" = "purple"))
+
 # assessment level model ----
 # adding residuals for new data frame
 a_assessment = a_ex1
