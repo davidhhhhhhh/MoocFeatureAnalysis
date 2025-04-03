@@ -49,7 +49,7 @@ a_ex1 = a_cleaned[!a_cleaned$updated_order==1,] # for excluding first item
 a_first = a_cleaned[a_cleaned$updated_order==1,] # for analyzing first item
 
 
-# course level model -----
+# exponential decay model -------
 library(lme4)
 
 # Fit the gamma distribution model with first item 
@@ -62,7 +62,7 @@ model4 <- glmer(dropout_percentage~updated_order + (1 | course_id),
                 data = a_ex1, family = Gamma(link = "log"))
 summary(model4)
 
-# plot the model
+# model fitting visualizations------------
 library(ggplot2)
 
 # Predict using only fixed effects for model3 and model4
@@ -93,34 +93,6 @@ ggplot() +
   ) +
   scale_color_manual(values = c("With first assessment" = "red", "Without first assessment" = "purple"))
 
-# Model 3 and 4 evalution on rsme
-# 1. Predictions and RMSE: Model 3 on full dataset (baseline)
-pred3_full <- predict(model3, newdata = a_cleaned, type = "response", re.form = NULL)
-obs_full <- a_cleaned$dropout_percentage
-rmse_model3_full <- sqrt(mean((obs_full - pred3_full)^2))
-
-# 2. Predictions and RMSE: Model 3 on subset dataset (a_ex1)
-pred3_ex1 <- predict(model3, newdata = a_ex1, type = "response", re.form = NULL, allow.new.levels = FALSE)
-observed_ex1 <- a_ex1$dropout_percentage
-rmse_model3_ex1 <- sqrt(mean((observed_ex1 - pred3_ex1)^2))
-
-# 3. Predictions and RMSE: Model 4 on subset dataset (original dataset)
-pred4_ex1 <- predict(model4, newdata = a_ex1, type = "response", re.form = NULL)
-rmse_model4_ex1 <- sqrt(mean((observed_ex1 - pred4_ex1)^2))
-
-# 4. Predictions and RMSE: Model 4 on full dataset (a_cleaned)
-pred4_full <- predict(model4, newdata = a_cleaned, type = "response", re.form = NULL, allow.new.levels = FALSE)
-observed_full <- a_cleaned$dropout_percentage
-rmse_model4_full <- sqrt(mean((obs_full - pred4_full)^2))
-
-# Summary Output
-rmse_results <- data.frame(
-  Model = c("Model 3", "Model 3", "Model 4", "Model 4"),
-  Evaluated_on = c("Full data", "Subset data (a_ex1)", "Subset data (a_ex1)", "Full data"),
-  RMSE = c(rmse_model3_full, rmse_model3_ex1, rmse_model4_ex1, rmse_model4_full)
-)
-
-print(rmse_results)
 # boxplot visual
 ggplot() +
   # Boxplot for a_cleaned data without a legend label
@@ -150,6 +122,69 @@ ggplot() +
   scale_color_manual(values = c("With first assessment" = "red", 
                                 "Without first assessment" = "purple"))
 
+# Plot for first ten assessments
+a_cleaned_subset <- a_cleaned %>% filter(updated_order <= 10)
+a_ex1_subset <- a_ex1 %>% filter(updated_order <= 10)
+
+ggplot() +
+  # Boxplot for a_cleaned data without a legend label
+  geom_boxplot(data = a_cleaned_subset, 
+               aes(x = updated_order, y = dropout_percentage, group = updated_order),
+               alpha = 0.3, fill = "grey") +
+  
+  # Fitted curve for model3 (with first assessment)
+  geom_line(data = a_cleaned_subset, 
+            aes(x = updated_order, y = fitted_value_fixed_model3, color = "With first assessment"), 
+            size = 1) +
+  
+  # Fitted curve for model4 (without first assessment)
+  geom_line(data = a_ex1_subset, 
+            aes(x = updated_order, y = fitted_value_fixed_model4, color = "Without first assessment"), 
+            size = 1) +
+  
+  # Labels and theme
+  labs(title = "Exponential Decay for Stopout Percentage",
+       x = "Assessment Order",
+       y = "Stopout Percentage",
+       color = "Model") +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  scale_color_manual(values = c("With first assessment" = "red", 
+                                "Without first assessment" = "purple"))+
+  scale_x_continuous(breaks = 1:10)
+
+# Model evaluations on rsme---------
+# 1. Predictions and RMSE: Model 3 on full dataset (baseline)
+pred3_full <- predict(model3, newdata = a_cleaned, type = "response", re.form = NULL)
+obs_full <- a_cleaned$dropout_percentage
+rmse_model3_full <- sqrt(mean((obs_full - pred3_full)^2))
+
+# 2. Predictions and RMSE: Model 3 on subset dataset (a_ex1)
+pred3_ex1 <- predict(model3, newdata = a_ex1, type = "response", re.form = NULL, allow.new.levels = FALSE)
+observed_ex1 <- a_ex1$dropout_percentage
+rmse_model3_ex1 <- sqrt(mean((observed_ex1 - pred3_ex1)^2))
+
+# 3. Predictions and RMSE: Model 4 on subset dataset (original dataset)
+pred4_ex1 <- predict(model4, newdata = a_ex1, type = "response", re.form = NULL)
+rmse_model4_ex1 <- sqrt(mean((observed_ex1 - pred4_ex1)^2))
+
+# 4. Predictions and RMSE: Model 4 on full dataset (a_cleaned)
+pred4_full <- predict(model4, newdata = a_cleaned, type = "response", re.form = NULL, allow.new.levels = FALSE)
+observed_full <- a_cleaned$dropout_percentage
+rmse_model4_full <- sqrt(mean((obs_full - pred4_full)^2))
+
+# Summary Output
+rmse_results <- data.frame(
+  Model = c("Model 3", "Model 3", "Model 4", "Model 4"),
+  Evaluated_on = c("Full data", "Subset data (a_ex1)", "Subset data (a_ex1)", "Full data"),
+  RMSE = c(rmse_model3_full, rmse_model3_ex1, rmse_model4_ex1, rmse_model4_full)
+)
+
+print(rmse_results)
 # assessment level model ----
 # adding residuals for new data frame
 a_assessment = a_ex1
